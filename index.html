@@ -100,7 +100,7 @@
 
     // Check if the pose is valid based on keypoint confidence
     const keypoints = pose.keypoints;
-    const minConfidence = 0.5; // Adjust this value as needed
+    const minConfidence = 0.3; // Adjust this value as needed
 
     // Ensure the pose includes keypoints like shoulders and hips with high confidence
     const leftShoulder = keypoints.find(kp => kp.part === "leftShoulder");
