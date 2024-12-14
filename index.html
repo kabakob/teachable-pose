@@ -109,7 +109,7 @@
             }
 
             // Display the class with the maximum probability
-            labelContainer.innerHTML = `Class: ${maxClass}, Probability: ${maxProbability.toFixed(2)}`;
+            labelContainer.innerHTML = `${maxClass} (${maxProbability.toFixed(2)*100} %)`;
 
             // Draw the poses
             drawPose(pose);
