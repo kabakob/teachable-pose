@@ -87,21 +87,15 @@
         }
 
         async function loop(timestamp) {
-            // Capture the webcam frame
-            webcam.update(); 
-            
-            // Draw the webcam image on the canvas
-            ctx.drawImage(webcam.canvas, 0, 0); 
-
-            // Run predictions only when webcam is ready
+            webcam.update(); // Update the webcam frame
             await predict();
             window.requestAnimationFrame(loop);
         }
 
         async function predict() {
-            // Ensure the webcam image is captured before running prediction
-            const image = webcam.canvas; // Get the current frame from the webcam
-            const { pose, posenetOutput } = await model.estimatePose(image);
+            // Run the input through PoseNet
+            const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+            // Run the input through Teachable Machine classification model
             const prediction = await model.predict(posenetOutput);
 
             // Find the class with the maximum probability
@@ -117,16 +111,19 @@
             // Display the class with the maximum probability
             labelContainer.innerHTML = `${maxClass} (${(maxProbability * 100).toFixed(2)}%)`;
 
-            // Draw the pose on the canvas
+            // Draw the poses
             drawPose(pose);
         }
 
         function drawPose(pose) {
-            if (pose) {
-                const minPartConfidence = 0.5;
-                // Draw keypoints and skeleton
-                tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
-                tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+            if (webcam.canvas) {
+                ctx.drawImage(webcam.canvas, 0, 0);
+                // Draw the keypoints and skeleton
+                if (pose) {
+                    const minPartConfidence = 0.5;
+                    tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+                    tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+                }
             }
         }
     </script>
