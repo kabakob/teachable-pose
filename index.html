@@ -87,64 +87,46 @@
         }
 
         async function loop(timestamp) {
-            webcam.update(); // Update the webcam frame
+            // Capture the webcam frame
+            webcam.update(); 
+            
+            // Draw the webcam image on the canvas
+            ctx.drawImage(webcam.canvas, 0, 0); 
+
+            // Run predictions only when webcam is ready
             await predict();
             window.requestAnimationFrame(loop);
         }
 
         async function predict() {
-    // Run the input through PoseNet
-    const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-    // Run the input through Teachable Machine classification model
-    const prediction = await model.predict(posenetOutput);
+            // Ensure the webcam image is captured before running prediction
+            const image = webcam.canvas; // Get the current frame from the webcam
+            const { pose, posenetOutput } = await model.estimatePose(image);
+            const prediction = await model.predict(posenetOutput);
 
-    // Check if the pose is valid based on keypoint confidence
-    const keypoints = pose.keypoints;
-    const minConfidence = 0.3; // Adjust this value as needed
+            // Find the class with the maximum probability
+            let maxClass = "";
+            let maxProbability = 0;
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > maxProbability) {
+                    maxProbability = prediction[i].probability;
+                    maxClass = prediction[i].className;
+                }
+            }
 
-    // Ensure the pose includes keypoints like shoulders and hips with high confidence
-    const leftShoulder = keypoints.find(kp => kp.part === "leftShoulder");
-    const rightShoulder = keypoints.find(kp => kp.part === "rightShoulder");
-    const leftHip = keypoints.find(kp => kp.part === "leftHip");
-    const rightHip = keypoints.find(kp => kp.part === "rightHip");
+            // Display the class with the maximum probability
+            labelContainer.innerHTML = `${maxClass} (${(maxProbability * 100).toFixed(2)}%)`;
 
-    if (
-        leftShoulder.score < minConfidence ||
-        rightShoulder.score < minConfidence ||
-        leftHip.score < minConfidence ||
-        rightHip.score < minConfidence
-    ) {
-        labelContainer.innerHTML = "No valid pose detected. Please perform a yoga pose.";
-        return;
-    }
-
-    // Find the class with the maximum probability
-    let maxClass = "";
-    let maxProbability = 0;
-    for (let i = 0; i < maxPredictions; i++) {
-        if (prediction[i].probability > maxProbability) {
-            maxProbability = prediction[i].probability;
-            maxClass = prediction[i].className;
+            // Draw the pose on the canvas
+            drawPose(pose);
         }
-    }
-
-    // Display the class with the maximum probability
-    labelContainer.innerHTML = `${maxClass} (${(maxProbability * 100).toFixed(2)}%)`;
-
-    // Draw the poses
-    drawPose(pose);
-}
-
 
         function drawPose(pose) {
-            if (webcam.canvas) {
-                ctx.drawImage(webcam.canvas, 0, 0);
-                // Draw the keypoints and skeleton
-                if (pose) {
-                    const minPartConfidence = 0.5;
-                    tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
-                    tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
-                }
+            if (pose) {
+                const minPartConfidence = 0.5;
+                // Draw keypoints and skeleton
+                tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+                tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
             }
         }
     </script>
