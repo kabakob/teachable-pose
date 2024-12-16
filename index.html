@@ -31,7 +31,7 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
             box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
         }
         button:hover {
@@ -53,50 +53,37 @@
 <body>
     <h1>ตรวจจับท่าโยคะ</h1>
     <button type="button" onclick="init()">เริ่มต้น</button>
-    <button type="button" onclick="switchCamera()">สลับกล้อง</button>
     <div><canvas id="canvas"></canvas></div>
     <div id="label-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
     <script type="text/javascript">
+        // Link to your model
         const URL = "https://teachablemachine.withgoogle.com/models/hOElLEzfK/";
         let model, webcam, ctx, labelContainer, maxPredictions;
-        let currentFacingMode = "user"; // 'user' = front camera, 'environment' = back camera
 
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
+            // Load the model and metadata
             model = await tmPose.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            setupWebcam();
-        }
-
-        async function setupWebcam() {
+            // Set up the webcam
             const size = 200;
-
-            if (webcam) {
-                await webcam.stop(); // Stop the existing webcam
-            }
-
-            webcam = new tmPose.Webcam(size, size, false, currentFacingMode); // Set flip based on facingMode
-            await webcam.setup(); // Request access to the webcam
+            const flip = true; // whether to flip the webcam
+            webcam = new tmPose.Webcam(size, size, flip); // width, height, flip
+            await webcam.setup(); // request access to the webcam
             await webcam.play();
+            window.requestAnimationFrame(loop);
 
+            // Set up the canvas
             const canvas = document.getElementById("canvas");
-            canvas.width = size;
-            canvas.height = size;
+            canvas.width = size; canvas.height = size;
             ctx = canvas.getContext("2d");
             labelContainer = document.getElementById("label-container");
-
-            window.requestAnimationFrame(loop);
-        }
-
-        async function switchCamera() {
-            currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
-            await setupWebcam();
         }
 
         async function loop(timestamp) {
@@ -106,12 +93,14 @@
         }
 
         async function predict() {
+            // Run the input through PoseNet
             const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+            // Run the input through Teachable Machine classification model
             const prediction = await model.predict(posenetOutput);
 
+            // Find the class with the maximum probability
             let maxClass = "";
             let maxProbability = 0;
-
             for (let i = 0; i < maxPredictions; i++) {
                 if (prediction[i].probability > maxProbability) {
                     maxProbability = prediction[i].probability;
@@ -119,13 +108,17 @@
                 }
             }
 
+            // Display the class with the maximum probability
             labelContainer.innerHTML = `${maxClass} (${(maxProbability * 100).toFixed(2)}%)`;
+
+            // Draw the poses
             drawPose(pose);
         }
 
         function drawPose(pose) {
             if (webcam.canvas) {
                 ctx.drawImage(webcam.canvas, 0, 0);
+                // Draw the keypoints and skeleton
                 if (pose) {
                     const minPartConfidence = 0.5;
                     tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
