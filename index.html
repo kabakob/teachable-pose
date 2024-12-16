@@ -95,28 +95,7 @@
         async function predict() {
             // Run the input through PoseNet
             const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-
-            // Validate if it's a valid yoga pose based on keypoints confidence
-            const keypoints = pose.keypoints;
-            const minConfidence = 0.5; // Minimum confidence for keypoints
-
-            const leftShoulder = keypoints.find(kp => kp.part === "leftShoulder");
-            const rightShoulder = keypoints.find(kp => kp.part === "rightShoulder");
-            const leftHip = keypoints.find(kp => kp.part === "leftHip");
-            const rightHip = keypoints.find(kp => kp.part === "rightHip");
-
-            // Check if the keypoints have sufficient confidence
-            if (
-                !leftShoulder || leftShoulder.score < minConfidence ||
-                !rightShoulder || rightShoulder.score < minConfidence ||
-                !leftHip || leftHip.score < minConfidence ||
-                !rightHip || rightHip.score < minConfidence
-            ) {
-                labelContainer.innerHTML = "Invalid yoga pose. Please try again.";
-                return;
-            }
-
-            // If valid pose, proceed with prediction
+            // Run the input through Teachable Machine classification model
             const prediction = await model.predict(posenetOutput);
 
             // Find the class with the maximum probability
